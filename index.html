@@ -90,7 +90,6 @@
         .btn-success:hover { background: #059669; }
         .btn-warning { background: var(--warning); }
         
-        /* Taby pro přepínání chatů u člena */
         .tabs {
             display: flex;
             gap: 5px;
@@ -159,8 +158,7 @@
         
         .user-item {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
             padding: 10px;
             background: #252529;
             border-radius: 6px;
@@ -168,8 +166,13 @@
             font-size: 14px;
             border: 1px solid var(--border);
         }
-        .user-item-actions { display: flex; gap: 5px; }
-        .user-item button { width: auto; margin: 0; padding: 5px 10px; font-size: 12px; }
+        .user-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .user-item-actions { display: flex; gap: 5px; margin-top: 8px; }
+        .user-item button { width: auto; margin: 0; padding: 5px 10px; font-size: 12px; flex: 1; }
 
         .info-card {
             background: #121214;
@@ -211,12 +214,33 @@
             font-weight: bold;
             border: 1px solid var(--border);
         }
+
+        /* Editovací řádky pro osobní údaje */
+        .editable-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #121214;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+        }
+        .editable-row span { font-size: 15px; }
+        .edit-pencil-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px;
+            width: auto;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- HLAVIČKA NÁZVU -->
     <div class="org-header">Organizace Samosprávného Sdružení</div>
 
     <!-- 1. SEKCE: AUTENTIKACE -->
@@ -247,10 +271,9 @@
     <div id="userSection" style="display: none;">
         <h2 id="userWelcome">Aplikace Člena</h2>
         
-        <!-- PŘEPÍNAČ CHATŮ PRO ČLENA -->
         <div class="tabs">
             <button class="tab-btn active" id="tabGlobalBtn" onclick="switchUserChatMode('global')">🌐 Globální chat</button>
-            <button class="tab-btn" id="tabPrivateBtn" onclick="switchUserChatMode('private')">🔒 Soukromý chat s Vedením</button>
+            <button class="tab-btn" id="tabPrivateBtn" onclick="switchUserChatMode('private')">🔒 Soukromý chat</button>
         </div>
 
         <div class="chat-box" id="userChatBox"></div>
@@ -259,6 +282,33 @@
         </div>
         <button onclick="sendUserMessage()">Odeslat zprávu</button>
         
+        <!-- SEKCE OSOBNÍCH ÚDAJŮ ČLENA -->
+        <div class="sub-block" style="margin-top: 15px; border-color: var(--primary);">
+            <h3>👤 Moje osobní údaje</h3>
+            <div id="userCredentialsDisplay">
+                <div class="editable-row">
+                    <span>Jméno: <strong id="lblProfileName">...</strong></span>
+                    <button class="edit-pencil-btn" onclick="editMyField('name')">✏️</button>
+                </div>
+                <div class="editable-row">
+                    <span>Heslo: <strong id="lblProfilePass">...</strong></span>
+                    <button class="edit-pencil-btn" onclick="editMyField('password')">✏️</button>
+                </div>
+            </div>
+            <div id="userCredentialsEditBlock" style="display: none;">
+                <div class="form-group">
+                    <label>Nové jméno</label>
+                    <input type="text" id="inputProfileName">
+                </div>
+                <div class="form-group">
+                    <label>Nové heslo (čísla)</label>
+                    <input type="number" id="inputProfilePass">
+                </div>
+                <button class="btn-success" onclick="saveMyNewCredentials()">Hotovo</button>
+                <button class="btn-alt" style="margin-top:5px;" onclick="cancelMyEdit()">Zrušit</button>
+            </div>
+        </div>
+
         <button class="btn-success" style="margin-top: 15px; font-size: 17px;" onclick="openSecretOfficeGate()">🏛️ ÚUI - Úřad Utajených Informací</button>
         <button class="btn-alt" onclick="logout()">Odhlásit se</button>
     </div>
@@ -269,7 +319,7 @@
         
         <div class="sub-block">
             <h3>Správa Účtů Členů a Soukromé Chaty</h3>
-            <div id="adminUsersList" style="max-height: 150px; overflow-y: auto;"></div>
+            <div id="adminUsersList" style="max-height: 220px; overflow-y: auto;"></div>
         </div>
 
         <!-- SOUKROMÝ CHAT VEDENÍ S VYBRANÝM ČLENEM -->
@@ -331,10 +381,7 @@
             <input type="text" id="searchInfoInput" placeholder="Napiš název hledané informace..." oninput="filterSecretInfo()">
         </div>
 
-        <div id="secretInfoContainer" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
-            <!-- Dynamický obsah -->
-        </div>
-
+        <div id="secretInfoContainer" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;"></div>
         <button class="btn-alt" onclick="closeSecretOffice()">⬅️ Zpět na hlavní stránku</button>
     </div>
 </div>
@@ -357,19 +404,20 @@
   const db = firebase.firestore();
 
   let currentUser = null;
+  let currentDocId = ""; // Ukládá ID aktuálně přihlášeného člena
   let isAdmin = false;
   let isRegisterMode = false;
   let previousSectionId = "authSection";
   let allSecretInfos = []; 
   
-  // Řízení aktivních posluchačů chatu
-  let userChatMode = "global"; // 'global' nebo 'private'
+  let userChatMode = "global"; 
   let activeChatTargetId = null;
   let activeChatTargetName = "";
   
   let unsubscribeAdminPrivateChat = null;
   let unsubscribeAdminGlobalChat = null;
   let unsubscribeUserChat = null;
+  let unsubscribeUserProfile = null;
 
   function toggleAdminField() {
       const block = document.getElementById("adminLoginBlock");
@@ -430,7 +478,7 @@
       if (!name || !password) return alert("Vyplň jméno a heslo!");
       const userId = cleanId(name);
       db.collection("users").doc(userId).get().then((doc) => {
-          if (doc.exists) { alert("Tento člen už v databezí existuje!"); } else {
+          if (doc.exists) { alert("Tento člen už v databázi existuje!"); } else {
               db.collection("users").doc(userId).set({
                   name: name, password: password.toString(),
                   createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -444,7 +492,9 @@
       const userId = cleanId(name);
       db.collection("users").doc(userId).get().then((doc) => {
           if (doc.exists && doc.data().password === password.toString()) {
-              currentUser = doc.data(); isAdmin = false;
+              currentUser = doc.data(); 
+              currentDocId = doc.id; 
+              isAdmin = false;
               alert("Vítej v systému, " + currentUser.name);
               showUserSection();
           } else { alert("Nesprávné jméno nebo heslo!"); }
@@ -495,6 +545,11 @@
           if (userPassInput === systemPass) { showOfficeSection(); } 
           else if (userPassInput !== null) { alert("Přístup odepřen! Nesprávné heslo k úřadu."); }
       });
+  }
+
+  function closeSecretOffice() {
+      document.getElementById("officeSection").style.display = "none";
+      document.getElementById(previousSectionId).style.display = "block";
   }
 
   function showOfficeSection() {
@@ -577,7 +632,7 @@
       }
   }
 
-  // MAZÁNÍ ZPRÁV V CHATU (PRO VEDENÍ)
+  // MAZÁNÍ ZPRÁV V CHATU
   function deleteChatMessage(msgId) {
       if(confirm("Opravdu chcete tuto zprávu trvale smazat?")) {
           db.collection("messages").doc(msgId).delete().then(() => { alert("Zpráva byla smazána."); });
@@ -597,15 +652,14 @@
       listenUserChat();
   }
 
-  // ODESÍLÁNÍ ZPRÁVY - ČLEN (DO GLOBÁLU NEBO SOUKROMÍ)
+  // ODESÍLÁNÍ ZPRÁVY - ČLEN
   function sendUserMessage() {
       const text = document.getElementById("userMessageInput").value.trim();
       if (!text) return;
-      const myId = cleanId(currentUser.name);
       
       db.collection("messages").add({
           sender: currentUser.name,
-          chatRoomId: userChatMode === "global" ? "global_room" : myId,
+          chatRoomId: userChatMode === "global" ? "global_room" : currentDocId,
           text: text,
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           isAdminSender: false
@@ -637,7 +691,6 @@
       }
   }
 
-  // Zabezpečené řazení zpráv s ošetřením chvilkových "null" stavů Firebase serveru
   function renderMessagesSnapshot(snapshot, targetBoxId, allowDelete) {
       const box = document.getElementById(targetBoxId);
       box.innerHTML = "";
@@ -649,7 +702,6 @@
           items.push(data);
       });
       
-      // Seřazení zpráv: Pokud server ještě nedodal timestamp, hodíme ji dolů na konec
       items.sort((a, b) => {
           let tA = a.timestamp ? a.timestamp.toMillis() : Date.now();
           let tB = b.timestamp ? b.timestamp.toMillis() : Date.now();
@@ -669,10 +721,10 @@
       box.scrollTop = box.scrollHeight;
   }
 
-  // DYNAMICKÝ POSLUCHAČ PRO ČLENA
+  // POSLUCHAČ CHATU ČLENA
   function listenUserChat() {
       if(unsubscribeUserChat) unsubscribeUserChat();
-      const targetRoom = userChatMode === "global" ? "global_room" : cleanId(currentUser.name);
+      const targetRoom = userChatMode === "global" ? "global_room" : currentDocId;
       
       unsubscribeUserChat = db.collection("messages")
         .where("chatRoomId", "==", targetRoom)
@@ -681,11 +733,72 @@
         });
   }
 
+  // ŽIVÝ POSLUCHAČ PROFILU ČLENA (Aby se hned projevily změny jména/hesla)
+  function listenUserProfile() {
+      if(unsubscribeUserProfile) unsubscribeUserProfile();
+      unsubscribeUserProfile = db.collection("users").doc(currentDocId).onSnapshot((doc) => {
+          if(doc.exists) {
+              currentUser = doc.data();
+              document.getElementById("userWelcome").innerText = "Aktivní člen: " + currentUser.name;
+              document.getElementById("lblProfileName").innerText = currentUser.name;
+              document.getElementById("lblProfilePass").innerText = currentUser.password;
+          }
+      });
+  }
+
   function showUserSection() {
       document.getElementById("authSection").style.display = "none";
       document.getElementById("userSection").style.display = "block";
-      document.getElementById("userWelcome").innerText = "Aktivní člen: " + currentUser.name;
+      cancelMyEdit();
+      listenUserProfile();
       switchUserChatMode("global");
+  }
+
+  // EDITACE VLASTNÍCH ÚDAJŮ ČLENEM
+  function editMyField() {
+      document.getElementById("userCredentialsDisplay").style.display = "none";
+      document.getElementById("userCredentialsEditBlock").style.display = "block";
+      document.getElementById("inputProfileName").value = currentUser.name;
+      document.getElementById("inputProfilePass").value = currentUser.password;
+  }
+
+  function cancelMyEdit() {
+      document.getElementById("userCredentialsDisplay").style.display = "block";
+      document.getElementById("userCredentialsEditBlock").style.display = "none";
+  }
+
+  function saveMyNewCredentials() {
+      const newName = document.getElementById("inputProfileName").value.trim();
+      const newPass = document.getElementById("inputProfilePass").value.trim();
+      
+      if(!newName || !newPass) return alert("Jméno i heslo musí být vyplněné!");
+      
+      db.collection("users").doc(currentDocId).update({
+          name: newName,
+          password: newPass.toString()
+      }).then(() => {
+          alert("Tvoje údaje byly úspěšně změněny.");
+          cancelMyEdit();
+      }).catch(err => alert("Chyba při ukládání: " + err.message));
+  }
+
+  // EDITACE ÚDAJŮ ČLENA VEDENÍM
+  function adminEditUserField(userId, currentName, currentPassword) {
+      const newName = prompt(`Zadej nové jméno pro člena (Původní: ${currentName}):`, currentName);
+      if (newName === null || newName.trim() === "") return;
+      
+      const newPass = prompt(`Zadej nové číselné heslo (Původní: ${currentPassword}):`, currentPassword);
+      if (newPass === null || newPass.trim() === "") return;
+
+      db.collection("users").doc(userId).update({
+          name: newName.trim(),
+          password: newPass.trim().toString()
+      }).then(() => {
+          alert("Údaje člena byly úspěšně upraveny Vedením.");
+          if (activeChatTargetId === userId) {
+              document.getElementById("adminChatPartnerTitle").innerText = "Soukromý chat s: " + newName.trim();
+          }
+      }).catch(err => alert("Chyba: " + err.message));
   }
 
   // OTEVŘENÍ SOUKROMÉHO CHATU VEDENÍM
@@ -708,7 +821,7 @@
       document.getElementById("adminChatInterfaceBlock").style.display = "none";
   }
 
-  // ZOBRAZENÍ PANELU VEDENÍ A POSLUCHAČ GLOBÁLU PRO VEDENÍ
+  // ZOBRAZENÍ PANELU VEDENÍ
   function showAdminSection() {
       document.getElementById("authSection").style.display = "none";
       document.getElementById("adminSection").style.display = "block";
@@ -721,9 +834,12 @@
               const u = doc.data(); const uId = doc.id;
               list.innerHTML += `
                   <div class="user-item">
-                      <div>👤 <strong>${u.name}</strong> (Heslo: ${u.password})</div>
+                      <div class="user-item-header">
+                          <div>👤 <strong>${u.name}</strong> (Heslo: ${u.password})</div>
+                      </div>
                       <div class="user-item-actions">
-                          <button style="background:var(--success);" onclick="openAdminChatWithUser('${uId}', '${u.name}')">💬 Soukromý chat</button>
+                          <button style="background:var(--success);" onclick="openAdminChatWithUser('${uId}', '${u.name}')">💬 Chat</button>
+                          <button style="background:#0284c7;" onclick="adminEditUserField('${uId}', '${u.name}', '${u.password}')">✏️ Údaje</button>
                           <button class="btn-danger" onclick="deleteUserAccount('${uId}', '${u.name}')">Odebrat</button>
                       </div>
                   </div>`;
@@ -741,9 +857,10 @@
 
   function logout() {
       if(unsubscribeUserChat) unsubscribeUserChat();
+      if(unsubscribeUserProfile) unsubscribeUserProfile();
       if(unsubscribeAdminGlobalChat) unsubscribeAdminGlobalChat();
       closeAdminChatActive();
-      currentUser = null; isAdmin = false;
+      currentUser = null; currentDocId = ""; isAdmin = false;
       document.getElementById("userSection").style.display = "none";
       document.getElementById("adminSection").style.display = "none";
       document.getElementById("authSection").style.display = "block";
