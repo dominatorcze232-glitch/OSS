@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klubový Systém & Vedení</title>
+    <title>Organizace Samosprávného Sdružení</title>
     
-    <!-- Firebase Knihovny v9 (Compat režim pro snadný běh na GitHubu) -->
+    <!-- Firebase Knihovny (Compat režim pro GitHub) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
@@ -18,6 +18,10 @@
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
             --border: #2d2d34;
+            --danger: #b91c1c;
+            --danger-hover: #991b1b;
+            --success: #10b981;
+            --warning: #d97706;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -32,7 +36,7 @@
         }
         .container {
             width: 100%;
-            max-width: 500px;
+            max-width: 650px;
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -40,10 +44,20 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
             position: relative;
         }
-        h2, h3 { margin-top: 0; color: #fff; }
+        .org-header {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #fff;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+        }
+        h2, h3 { margin-top: 0; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 14px; }
-        input {
+        input, textarea {
             width: 100%;
             padding: 10px;
             background: #252529;
@@ -53,6 +67,7 @@
             box-sizing: border-box;
             font-size: 16px;
         }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
         button {
             width: 100%;
             padding: 12px;
@@ -69,12 +84,29 @@
         button:hover { background: var(--primary-hover); }
         .btn-alt { background: transparent; border: 1px solid var(--border); color: var(--text-muted); margin-top: 10px;}
         .btn-alt:hover { background: #252529; color: #fff; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: var(--warning); }
         
+        .action-row {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .action-row button {
+            padding: 6px 10px;
+            font-size: 13px;
+            width: auto;
+            flex: 1;
+        }
+
         .chat-box {
             background: #121214;
             border: 1px solid var(--border);
             border-radius: 6px;
-            height: 200px;
+            height: 180px;
             overflow-y: auto;
             padding: 10px;
             margin-bottom: 10px;
@@ -87,9 +119,12 @@
             font-size: 14px;
         }
         .msg.admin-msg { border-left: 3px solid #e11d48; background: #2e1619; }
-        .msg.user-msg { border-left: 3px solid #10b981; }
+        .msg.user-msg { border-left: 3px solid var(--success); }
         
         .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             padding: 10px;
             background: #252529;
             border-radius: 6px;
@@ -97,32 +132,47 @@
             font-size: 14px;
             border: 1px solid var(--border);
         }
+        .user-item button { width: auto; margin: 0; padding: 5px 10px; font-size: 12px; }
 
-        /* Skryté tlačítko "A" pro admina v rohu */
+        .info-card {
+            background: #121214;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .info-card.locked-card {
+            border-left-color: var(--warning);
+            background: #221910;
+        }
+        .info-title { font-weight: bold; color: #fff; font-size: 16px; margin-bottom: 6px; display: flex; justify-content: space-between;}
+        .info-desc { color: var(--text-main); font-size: 14px; white-space: pre-wrap; background: #1a1a1e; padding: 8px; border-radius: 4px; border: 1px solid #2d2d34; }
+        .info-status { font-size: 11px; color: var(--warning); font-weight: bold; }
+
         .admin-a-trigger {
             position: absolute;
             bottom: 10px;
             right: 15px;
             font-size: 14px;
-            color: #252529; /* Téměř neviditelné na tmavém pozadí */
+            color: #252529;
             cursor: pointer;
             user-select: none;
             font-weight: bold;
         }
-        .admin-a-trigger:hover {
-            color: var(--text-muted); /* Rozsvítí se jen při najetí myší */
-        }
-        #adminLoginBlock {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px dashed var(--border);
-        }
+        .admin-a-trigger:hover { color: var(--text-muted); }
+        #adminLoginBlock { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border); }
+        .sub-block { background: #202024; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 1. SEKCE: AUTENTIKACE (PŘIHLÁŠENÍ / REGISTRACE) -->
+    <!-- HLAVIČKA NÁZVU -->
+    <div class="org-header">Organizace Samosprávného Sdružení</div>
+
+    <!-- 1. SEKCE: AUTENTIKACE -->
     <div id="authSection">
         <h2 id="authTitle">Přihlášení člena</h2>
         <div class="form-group">
@@ -136,55 +186,98 @@
         <button id="btnPrimary" onclick="handlePrimaryAction()">Přihlásit se</button>
         <button class="btn-alt" id="btnToggle" onclick="toggleAuthMode()">Nemáš účet? Registruj se</button>
         
-        <!-- Skrytý formulář pro admin kód, který se ukáže až po kliknutí na "A" -->
+        <!-- HLAVNÍ TLAČÍTKO ÚUI -->
+        <button class="btn-success" style="margin-top: 15px; font-size: 17px;" onclick="openSecretOfficeGate()">🏛️ ÚUI - Úřad Utajených Informací</button>
+        
         <div id="adminLoginBlock" style="display: none;">
             <div class="form-group">
-                <label for="adminCodeInput">Tajný kód vedení</label>
+                <label for="adminCodeInput">Tajný kód Vedení</label>
                 <input type="password" id="adminCodeInput" placeholder="Zadej kód">
             </div>
             <button style="background: #b91c1c;" onclick="submitAdminCode()">Vstoupit jako Vedení</button>
         </div>
-
-        <!-- TAJNÉ TLAČÍTKO "A" -->
         <div class="admin-a-trigger" onclick="toggleAdminField()">A</div>
     </div>
 
-    <!-- 2. SEKCE: DASHBOARD ČLENA (CHAT S VEDENÍM) -->
+    <!-- 2. SEKCE: DASHBOARD ČLENA -->
     <div id="userSection" style="display: none;">
         <h2 id="userWelcome">Aplikace Člena</h2>
-        <p style="color: var(--text-muted); font-size: 14px;">Zde můžeš napsat zprávu přímo vedení klubu.</p>
+        <p style="color: var(--text-muted); font-size: 14px;">Zde komunikuješ s Vedením.</p>
         
         <div class="chat-box" id="userChatBox"></div>
-        
         <div class="form-group">
-            <input type="text" id="userMessageInput" placeholder="Napiš zprávu vedení...">
+            <input type="text" id="userMessageInput" placeholder="Napiš zprávu Vedení...">
         </div>
         <button onclick="sendUserMessage()">Odeslat zprávu</button>
+        <button class="btn-success" style="margin-top: 10px;" onclick="openSecretOfficeGate()">🏛️ ÚUI - Úřad Utajených Informací</button>
         <button class="btn-alt" onclick="logout()">Odhlásit se</button>
     </div>
 
-    <!-- 3. SEKCE: DASHBOARD ADMINA (VEDENÍ) -->
+    <!-- 3. SEKCE: PANEL VEDENÍ -->
     <div id="adminSection" style="display: none;">
-        <h2>Panel Vedení (Admin)</h2>
+        <h2>Panel Vedení</h2>
         
-        <div id="adminUsersList" style="margin-bottom: 20px; max-height: 150px; overflow-y: auto;">
-            <p style="color: var(--text-muted);">Načítám registrované účty...</p>
+        <div class="sub-block">
+            <h3>Správa Účtů Členů</h3>
+            <div id="adminUsersList" style="max-height: 150px; overflow-y: auto;"></div>
         </div>
 
-        <h3>Globální komunikace</h3>
+        <div class="sub-block">
+            <h3>Správa Úřadu (ÚUI)</h3>
+            <div class="form-group">
+                <label for="newOfficePass">Nové přístupové heslo k Úřadu (ÚUI)</label>
+                <input type="text" id="newOfficePass" placeholder="Zadej nové heslo úřadu">
+            </div>
+            <button onclick="updateOfficePassword()">Uložit / Změnit heslo úřadu</button>
+            
+            <!-- FORMULÁŘ PŘIDÁNÍ INFORMACE S TLAČÍTKEM + -->
+            <h4 style="margin-top:20px; margin-bottom:10px; color:#fff; border-top: 1px solid var(--border); padding-top: 10px;">Přidat utajenou informaci</h4>
+            <div id="creatorFormBlock" style="display:none; background:#121214; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
+                <div class="form-group">
+                    <label>Název informace/í</label>
+                    <input type="text" id="infoTitleInput" placeholder="Zadej název">
+                </div>
+                <div class="form-group">
+                    <label>Informace</label>
+                    <textarea id="infoDescInput" placeholder="Zadej text samotné informace..."></textarea>
+                </div>
+                <button class="btn-success" onclick="publishSecretInfo()">Hotovo</button>
+            </div>
+            <button id="btnOpenCreator" style="background:#374151;" onclick="toggleCreatorForm()">➕ Vytvořit novou informaci</button>
+        </div>
+
+        <h3>Globální chat se členy</h3>
         <div class="chat-box" id="adminChatBox"></div>
-        
         <div class="form-group">
             <input type="text" id="adminMessageInput" placeholder="Napiš odpověď členům...">
         </div>
         <button onclick="sendAdminMessage()">Odeslat zprávu jako Vedení</button>
+        <button class="btn-success" style="margin-top: 10px;" onclick="openSecretOfficeGate()">🏛️ Otevřít Úřad ÚUI</button>
         <button class="btn-alt" onclick="logout()">Odhlásit se</button>
+    </div>
+
+    <!-- 4. SEKCE: STRÁNKA ÚŘADU (ÚUI) -->
+    <div id="officeSection" style="display: none;">
+        <h2>🏛️ Úřad Utajených Informací (ÚUI)</h2>
+        <p style="color: var(--text-muted); font-size: 14px;">Zabezpečený přehled dokumentů Organizace Samosprávného Sdružení.</p>
+        
+        <!-- VYHLEDÁVACÍ ŘÁDEK PODLE NÁZVU -->
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="searchInfoInput">🔍 Vyhledat informaci podle názvu</label>
+            <input type="text" id="searchInfoInput" placeholder="Napiš název hledané informace..." oninput="filterSecretInfo()">
+        </div>
+
+        <div id="secretInfoContainer" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+            <!-- Dynamický obsah -->
+        </div>
+
+        <button class="btn-alt" onclick="closeSecretOffice()">⬅️ Zpět na hlavní stránku</button>
     </div>
 </div>
 
 <script>
   // ==========================================
-  // CONFIG: KONFIGURACE PRO TVŮJ PROJEKT oss-1eb9c
+  // CONFIG: FIREBASE CONFIG PRO PROJEKT oss-1eb9c
   // ==========================================
   const firebaseConfig = {
     apiKey: "AIzaSyAdWfq820KmqBSFxMODpxL1ijCYpf0rlog",
@@ -196,18 +289,30 @@
     appId: "1:845793197540:web:0b875f7f8a4b46b3aedbf1"
   };
 
-  // Inicializace databáze
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
   let currentUser = null;
   let isAdmin = false;
   let isRegisterMode = false;
+  let previousSectionId = "authSection";
+  let allSecretInfos = []; 
 
-  // Funkce pro skryté tlačítko "A" – bezpečné zobrazení vstupu
   function toggleAdminField() {
       const block = document.getElementById("adminLoginBlock");
       block.style.display = block.style.display === "none" ? "block" : "none";
+  }
+
+  function toggleCreatorForm() {
+      const f = document.getElementById("creatorFormBlock");
+      const btn = document.getElementById("btnOpenCreator");
+      if(f.style.display === "none") {
+          f.style.display = "block";
+          btn.innerText = "❌ Zavřít formulář";
+      } else {
+          f.style.display = "none";
+          btn.innerText = "➕ Vytvořit novou informaci";
+      }
   }
 
   function submitAdminCode() {
@@ -215,13 +320,11 @@
       if (code === "6852") {
           isAdmin = true;
           currentUser = { name: "Vedení" };
-          alert("Vítejte zpět, pane správče.");
+          alert("Vítejte, Vedení.");
           document.getElementById("adminCodeInput").value = "";
           document.getElementById("adminLoginBlock").style.display = "none";
           showAdminSection();
-      } else {
-          alert("Neplatný admin kód!");
-      }
+      } else { alert("Neplatný kód Vedení!"); }
   }
 
   function toggleAuthMode() {
@@ -229,7 +332,6 @@
       const title = document.getElementById("authTitle");
       const btnPrimary = document.getElementById("btnPrimary");
       const btnToggle = document.getElementById("btnToggle");
-      
       if (isRegisterMode) {
           title.innerText = "Registrace člena";
           btnPrimary.innerText = "Vytvořit účet";
@@ -244,12 +346,7 @@
   function handlePrimaryAction() {
       const name = document.getElementById("authName").value.trim();
       const password = document.getElementById("authPassword").value.trim();
-      
-      if(isRegisterMode) {
-          registerUser(name, password);
-      } else {
-          loginUser(name, password);
-      }
+      if(isRegisterMode) { registerUser(name, password); } else { loginUser(name, password); }
   }
 
   function cleanId(text) {
@@ -259,19 +356,12 @@
   function registerUser(name, password) {
       if (!name || !password) return alert("Vyplň jméno a heslo!");
       const userId = cleanId(name);
-
       db.collection("users").doc(userId).get().then((doc) => {
-          if (doc.exists) {
-              alert("Tento uživatel už v databázi existuje!");
-          } else {
+          if (doc.exists) { alert("Tento člen už v databázi existuje!"); } else {
               db.collection("users").doc(userId).set({
-                  name: name,
-                  password: password.toString(),
+                  name: name, password: password.toString(),
                   createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              }).then(() => {
-                  alert("Účet byl úspěšně vytvořen! Nyní se přihlas.");
-                  toggleAuthMode();
-              }).catch((err) => alert("Chyba při zápisu do Firebase: " + err.message));
+              }).then(() => { alert("Účet člena úspěšně vytvořen! Přihlas se."); toggleAuthMode(); });
           }
       });
   }
@@ -279,47 +369,196 @@
   function loginUser(name, password) {
       if (!name || !password) return alert("Vyplň jméno a heslo!");
       const userId = cleanId(name);
-
       db.collection("users").doc(userId).get().then((doc) => {
           if (doc.exists && doc.data().password === password.toString()) {
-              currentUser = doc.data();
-              isAdmin = false;
-              alert("Přihlášení úspěšné. Vítej, " + currentUser.name);
+              currentUser = doc.data(); isAdmin = false;
+              alert("Vítej v systému, " + currentUser.name);
               showUserSection();
-          } else {
-              alert("Nesprávné jméno nebo heslo!");
+          } else { alert("Nesprávné jméno nebo heslo!"); }
+      });
+  }
+
+  function deleteUserAccount(userId, userName) {
+      if (confirm(`Opravdu chcete kompletně smazat účet člena: ${userName}?`)) {
+          db.collection("users").doc(userId).delete().then(() => {
+              alert(`Účet člena ${userName} byl smazán.`);
+          });
+      }
+  }
+
+  function updateOfficePassword() {
+      const newPass = document.getElementById("newOfficePass").value.trim();
+      if (!newPass) return alert("Zadej platné heslo!");
+      db.collection("system_config").doc("office_access").set({ password: newPass }).then(() => {
+          alert("Přístupové heslo k Úřadu ÚUI bylo aktualizováno.");
+          document.getElementById("newOfficePass").value = "";
+      });
+  }
+
+  // PŘIDÁNÍ INFORMACE
+  function publishSecretInfo() {
+      const title = document.getElementById("infoTitleInput").value.trim();
+      const desc = document.getElementById("infoDescInput").value.trim();
+      if (!title || !desc) return alert("Musíš vyplnit Název informace i text Informace!");
+
+      db.collection("secret_office").add({
+          title: title,
+          description: desc,
+          isLocked: false, // Standardně odemčeno pro úřad
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+          alert("Hotovo! Informace byla uložena.");
+          document.getElementById("infoTitleInput").value = "";
+          document.getElementById("infoDescInput").value = "";
+          toggleCreatorForm();
+      });
+  }
+
+  // OTEVŘENÍ ÚŘADU ÚUI S HESLEM
+  function openSecretOfficeGate() {
+      db.collection("system_config").doc("office_access").get().then((doc) => {
+          let systemPass = "0000"; 
+          if (doc.exists) { systemPass = doc.data().password; }
+          
+          const userPassInput = prompt("Zadej přístupové heslo k Úřadu ÚUI:");
+          if (userPassInput === systemPass) {
+              showOfficeSection();
+          } else if (userPassInput !== null) {
+              alert("Přístup odepřen! Nesprávné heslo k úřadu.");
           }
-      }).catch((err) => alert("Chyba přihlášení: " + err.message));
+      });
+  }
+
+  function showOfficeSection() {
+      if (document.getElementById("authSection").style.display !== "none") previousSectionId = "authSection";
+      if (document.getElementById("userSection").style.display !== "none") previousSectionId = "userSection";
+      if (document.getElementById("adminSection").style.display !== "none") previousSectionId = "adminSection";
+
+      document.getElementById("authSection").style.display = "none";
+      document.getElementById("userSection").style.display = "none";
+      document.getElementById("adminSection").style.display = "none";
+      document.getElementById("officeSection").style.display = "block";
+      document.getElementById("searchInfoInput").value = "";
+
+      // Posluchač na informace
+      db.collection("secret_office").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+          allSecretInfos = [];
+          snapshot.forEach(doc => {
+              let data = doc.data();
+              data.docId = doc.id;
+              allSecretInfos.push(data);
+          });
+          renderSecretInfoList(allSecretInfos);
+      });
+  }
+
+  function renderSecretInfoList(listData) {
+      const container = document.getElementById("secretInfoContainer");
+      container.innerHTML = "";
+      
+      let visibleCount = 0;
+
+      listData.forEach(info => {
+          // Pokud je informace zamčená a prohlížející NENÍ admin, úplně ji přeskočíme
+          if (info.isLocked && !isAdmin) {
+              return; 
+          }
+          
+          visibleCount++;
+          
+          let cardClass = info.isLocked ? "info-card locked-card" : "info-card";
+          let lockLabel = info.isLocked ? "🔒 ZAMKNUTO (Vidí jen Vedení)" : "🔓 Odemčeno pro členy";
+          
+          let adminControls = "";
+          if (isAdmin) {
+              adminControls = `
+                  <div class="action-row">
+                      <button class="btn-warning" onclick="toggleLockInfo('${info.docId}', ${info.isLocked})">${info.isLocked ? "🔓 Odemknout" : "🔒 Zamknout"}</button>
+                      <button style="background:#0284c7;" onclick="editInfoDescription('${info.docId}', \`${info.description.replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`)">✏️ Upravit</button>
+                      <button class="btn-danger" onclick="deleteSecretInfo('${info.docId}')">🗑️ Vymazat</button>
+                  </div>
+              `;
+          }
+
+          container.innerHTML += `
+              <div class="${cardClass}">
+                  <div class="info-title">
+                      <span>📋 ${info.title}</span>
+                      ${isAdmin ? `<span class="info-status">${lockLabel}</span>` : ""}
+                  </div>
+                  <div class="info-desc">${info.description}</div>
+                  ${adminControls}
+              </div>
+          `;
+      });
+
+      if (visibleCount === 0) {
+          container.innerHTML = "<p style='color:var(--text-muted);text-align:center;'>Žádné dostupné utajené informace.</p>";
+      }
+  }
+
+  // VYHLEDÁVÁNÍ PODLE NÁZVU
+  function filterSecretInfo() {
+      const searchVal = document.getElementById("searchInfoInput").value.toLowerCase().trim();
+      if (!searchVal) {
+          renderSecretInfoList(allSecretInfos);
+          return;
+      }
+      const filtered = allSecretInfos.filter(info => info.title.toLowerCase().includes(searchVal));
+      renderSecretInfoList(filtered);
+  }
+
+  // ADMIN: ZAMKNOUT / ODAMKNOUT INFORMACI
+  function toggleLockInfo(docId, currentStatus) {
+      db.collection("secret_office").doc(docId).update({
+          isLocked: !currentStatus
+      }).then(() => {
+          alert(currentStatus ? "Informace byla odemčena pro členy." : "Informace byla uzamčena a je viditelná POUZE pro Vedení.");
+      });
+  }
+
+  // ADMIN: VYMAZAT INFORMACI
+  function deleteSecretInfo(docId) {
+      if (confirm("Opravdu chcete tuto informaci kompletně smazat z Úřadu?")) {
+          db.collection("secret_office").doc(docId).delete().then(() => {
+              alert("Informace byla úspěšně vymazána.");
+          });
+      }
+  }
+
+  // ADMIN: UPRAVIT INFORMACI
+  function editInfoDescription(docId, oldText) {
+      const newText = prompt("Upravte text informace:", oldText);
+      if (newText !== null && newText.trim() !== "") {
+          db.collection("secret_office").doc(docId).update({
+              description: newText.trim()
+          }).then(() => {
+              alert("Informace byla úspěšně aktualizována.");
+          });
+      }
+  }
+
+  function closeSecretOffice() {
+      document.getElementById("officeSection").style.display = "none";
+      document.getElementById("" + previousSectionId).style.display = "block";
   }
 
   function sendUserMessage() {
       const text = document.getElementById("userMessageInput").value.trim();
       if (!text) return;
-
       db.collection("messages").add({
-          sender: currentUser.name,
-          senderId: cleanId(currentUser.name),
-          text: text,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          isAdminSender: false
-      }).then(() => {
-          document.getElementById("userMessageInput").value = "";
-      });
+          sender: currentUser.name, senderId: cleanId(currentUser.name), text: text,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(), isAdminSender: false
+      }).then(() => { document.getElementById("userMessageInput").value = ""; });
   }
 
   function sendAdminMessage() {
       const text = document.getElementById("adminMessageInput").value.trim();
       if (!text) return;
-
       db.collection("messages").add({
-          sender: "Vedení klubu",
-          senderId: "admin_root",
-          text: text,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          isAdminSender: true
-      }).then(() => {
-          document.getElementById("adminMessageInput").value = "";
-      });
+          sender: "Vedení", senderId: "admin_root", text: text,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(), isAdminSender: true
+      }).then(() => { document.getElementById("adminMessageInput").value = ""; });
   }
 
   function showUserSection() {
@@ -345,13 +584,15 @@
 
       db.collection("users").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
           const list = document.getElementById("adminUsersList");
-          list.innerHTML = "<h3>Registrovaní členové v DB:</h3>";
-          if (snapshot.empty) {
-              list.innerHTML += "<p style='color:var(--text-muted)'>Žádné účty v databázi.</p>";
-          }
+          list.innerHTML = "";
+          if (snapshot.empty) { list.innerHTML = "<p style='color:var(--text-muted)'>Žádní členové v DB.</p>"; }
           snapshot.forEach((doc) => {
-              const u = doc.data();
-              list.innerHTML += `<div class="user-item">👤 <strong>${u.name}</strong> (Heslo: ${u.password})</div>`;
+              const u = doc.data(); const uId = doc.id;
+              list.innerHTML += `
+                  <div class="user-item">
+                      <div>👤 <strong>${u.name}</strong> (Heslo: ${u.password})</div>
+                      <button class="btn-danger" onclick="deleteUserAccount('${uId}', '${u.name}')">Odebrat</button>
+                  </div>`;
           });
       });
 
@@ -368,8 +609,7 @@
   }
 
   function logout() {
-      currentUser = null;
-      isAdmin = false;
+      currentUser = null; isAdmin = false;
       document.getElementById("userSection").style.display = "none";
       document.getElementById("adminSection").style.display = "none";
       document.getElementById("authSection").style.display = "block";
