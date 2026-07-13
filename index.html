@@ -430,7 +430,7 @@
       if (!name || !password) return alert("Vyplň jméno a heslo!");
       const userId = cleanId(name);
       db.collection("users").doc(userId).get().then((doc) => {
-          if (doc.exists) { alert("Tento člen už v databázi existuje!"); } else {
+          if (doc.exists) { alert("Tento člen už v databezí existuje!"); } else {
               db.collection("users").doc(userId).set({
                   name: name, password: password.toString(),
                   createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -577,11 +577,6 @@
       }
   }
 
-  function closeSecretOffice() {
-      document.getElementById("officeSection").style.display = "none";
-      document.getElementById("" + previousSectionId).style.display = "block";
-  }
-
   // MAZÁNÍ ZPRÁV V CHATU (PRO VEDENÍ)
   function deleteChatMessage(msgId) {
       if(confirm("Opravdu chcete tuto zprávu trvale smazat?")) {
@@ -642,6 +637,38 @@
       }
   }
 
+  // Zabezpečené řazení zpráv s ošetřením chvilkových "null" stavů Firebase serveru
+  function renderMessagesSnapshot(snapshot, targetBoxId, allowDelete) {
+      const box = document.getElementById(targetBoxId);
+      box.innerHTML = "";
+      
+      let items = [];
+      snapshot.forEach(doc => {
+          let data = doc.data();
+          data.id = doc.id;
+          items.push(data);
+      });
+      
+      // Seřazení zpráv: Pokud server ještě nedodal timestamp, hodíme ji dolů na konec
+      items.sort((a, b) => {
+          let tA = a.timestamp ? a.timestamp.toMillis() : Date.now();
+          let tB = b.timestamp ? b.timestamp.toMillis() : Date.now();
+          return tA - tB;
+      });
+
+      items.forEach(m => {
+          const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
+          let deleteBtn = (allowDelete && isAdmin) ? `<button class="msg-delete-btn" onclick="deleteChatMessage('${m.id}')">❌</button>` : "";
+          
+          box.innerHTML += `
+              <div class="msg ${typeClass}">
+                  <span><strong>${m.sender}:</strong> ${m.text}</span>
+                  ${deleteBtn}
+              </div>`;
+      });
+      box.scrollTop = box.scrollHeight;
+  }
+
   // DYNAMICKÝ POSLUCHAČ PRO ČLENA
   function listenUserChat() {
       if(unsubscribeUserChat) unsubscribeUserChat();
@@ -649,19 +676,8 @@
       
       unsubscribeUserChat = db.collection("messages")
         .where("chatRoomId", "==", targetRoom)
-        .orderBy("timestamp", "asc")
         .onSnapshot((snapshot) => {
-            const box = document.getElementById("userChatBox");
-            box.innerHTML = "";
-            snapshot.forEach((doc) => {
-                const m = doc.data();
-                const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
-                box.innerHTML += `
-                    <div class="msg ${typeClass}">
-                        <span><strong>${m.sender}:</strong> ${m.text}</span>
-                    </div>`;
-            });
-            box.scrollTop = box.scrollHeight;
+            renderMessagesSnapshot(snapshot, "userChatBox", false);
         });
   }
 
@@ -681,19 +697,8 @@
       if(unsubscribeAdminPrivateChat) unsubscribeAdminPrivateChat();
       unsubscribeAdminPrivateChat = db.collection("messages")
         .where("chatRoomId", "==", userId)
-        .orderBy("timestamp", "asc")
         .onSnapshot((snapshot) => {
-            const box = document.getElementById("adminChatBox"); box.innerHTML = "";
-            snapshot.forEach((doc) => {
-                const m = doc.data(); const mId = doc.id;
-                const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
-                box.innerHTML += `
-                    <div class="msg ${typeClass}">
-                        <span><strong>${m.sender}:</strong> ${m.text}</span>
-                        <button class="msg-delete-btn" onclick="deleteChatMessage('${mId}')">❌</button>
-                    </div>`;
-            });
-            box.scrollTop = box.scrollHeight;
+            renderMessagesSnapshot(snapshot, "adminChatBox", true);
         });
   }
 
@@ -729,19 +734,8 @@
       if(unsubscribeAdminGlobalChat) unsubscribeAdminGlobalChat();
       unsubscribeAdminGlobalChat = db.collection("messages")
         .where("chatRoomId", "==", "global_room")
-        .orderBy("timestamp", "asc")
         .onSnapshot((snapshot) => {
-            const box = document.getElementById("adminGlobalChatBox"); box.innerHTML = "";
-            snapshot.forEach((doc) => {
-                const m = doc.data(); const mId = doc.id;
-                const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
-                box.innerHTML += `
-                    <div class="msg ${typeClass}">
-                        <span><strong>${m.sender}:</strong> ${m.text}</span>
-                        <button class="msg-delete-btn" onclick="deleteChatMessage('${mId}')">❌</button>
-                    </div>`;
-            });
-            box.scrollTop = box.scrollHeight;
+            renderMessagesSnapshot(snapshot, "adminGlobalChatBox", true);
         });
   }
 
