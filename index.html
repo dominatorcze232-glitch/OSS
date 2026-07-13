@@ -54,7 +54,7 @@
             padding-bottom: 10px;
             border-bottom: 2px solid var(--primary);
         }
-        h2, h3 { margin-top: 0; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        h2, h3, h4 { margin-top: 0; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 14px; }
         input, textarea {
@@ -106,7 +106,7 @@
             background: #121214;
             border: 1px solid var(--border);
             border-radius: 6px;
-            height: 180px;
+            height: 200px;
             overflow-y: auto;
             padding: 10px;
             margin-bottom: 10px;
@@ -117,9 +117,24 @@
             border-radius: 6px;
             margin-bottom: 8px;
             font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .msg.admin-msg { border-left: 3px solid #e11d48; background: #2e1619; }
         .msg.user-msg { border-left: 3px solid var(--success); }
+        .msg-delete-btn {
+            background: transparent;
+            color: var(--danger);
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 2px 6px;
+            margin-left: 10px;
+            width: auto;
+            font-size: 12px;
+        }
+        .msg-delete-btn:hover { color: #f43f5e; }
         
         .user-item {
             display: flex;
@@ -132,6 +147,7 @@
             font-size: 14px;
             border: 1px solid var(--border);
         }
+        .user-item-actions { display: flex; gap: 5px; }
         .user-item button { width: auto; margin: 0; padding: 5px 10px; font-size: 12px; }
 
         .info-card {
@@ -164,6 +180,16 @@
         .admin-a-trigger:hover { color: var(--text-muted); }
         #adminLoginBlock { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border); }
         .sub-block { background: #202024; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .chat-header-banner {
+            background: #252529;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--success);
+            font-weight: bold;
+            border: 1px solid var(--border);
+        }
     </style>
 </head>
 <body>
@@ -186,9 +212,6 @@
         <button id="btnPrimary" onclick="handlePrimaryAction()">Přihlásit se</button>
         <button class="btn-alt" id="btnToggle" onclick="toggleAuthMode()">Nemáš účet? Registruj se</button>
         
-        <!-- HLAVNÍ TLAČÍTKO ÚUI -->
-        <button class="btn-success" style="margin-top: 15px; font-size: 17px;" onclick="openSecretOfficeGate()">🏛️ ÚUI - Úřad Utajených Informací</button>
-        
         <div id="adminLoginBlock" style="display: none;">
             <div class="form-group">
                 <label for="adminCodeInput">Tajný kód Vedení</label>
@@ -202,14 +225,16 @@
     <!-- 2. SEKCE: DASHBOARD ČLENA -->
     <div id="userSection" style="display: none;">
         <h2 id="userWelcome">Aplikace Člena</h2>
-        <p style="color: var(--text-muted); font-size: 14px;">Zde komunikuješ s Vedením.</p>
+        <p style="color: var(--text-muted); font-size: 14px;">Zde komunikuješ soukromě s Vedením.</p>
         
         <div class="chat-box" id="userChatBox"></div>
         <div class="form-group">
-            <input type="text" id="userMessageInput" placeholder="Napiš zprávu Vedení...">
+            <input type="text" id="userMessageInput" placeholder="Napiš soukromou zprávu Vedení...">
         </div>
         <button onclick="sendUserMessage()">Odeslat zprávu</button>
-        <button class="btn-success" style="margin-top: 10px;" onclick="openSecretOfficeGate()">🏛️ ÚUI - Úřad Utajených Informací</button>
+        
+        <!-- TLAČÍTKO ÚUI - ZOBRAZENO AŽ PO PŘIHLÁŠENÍ -->
+        <button class="btn-success" style="margin-top: 15px; font-size: 17px;" onclick="openSecretOfficeGate()">🏛️ ÚUI - Úřad Utajených Informací</button>
         <button class="btn-alt" onclick="logout()">Odhlásit se</button>
     </div>
 
@@ -218,8 +243,20 @@
         <h2>Panel Vedení</h2>
         
         <div class="sub-block">
-            <h3>Správa Účtů Členů</h3>
-            <div id="adminUsersList" style="max-height: 150px; overflow-y: auto;"></div>
+            <h3>Správa Účtů Členů a Soukromé Chaty</h3>
+            <div id="adminUsersList" style="max-height: 180px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- SOUKROMÝ CHAT VEDENÍ S VYBRANÝM ČLENEM -->
+        <div class="sub-block" id="adminChatInterfaceBlock" style="display: none; border-color: var(--success);">
+            <h3 id="adminChatPartnerTitle">Chat s členem: Vyberte člena</h3>
+            <div class="chat-header-banner" id="chatBannerInfo">Aktivní soukromý kanál</div>
+            <div class="chat-box" id="adminChatBox"></div>
+            <div class="form-group">
+                <input type="text" id="adminMessageInput" placeholder="Napiš soukromou odpověď členovi...">
+            </div>
+            <button class="btn-success" onclick="sendAdminMessage()">Odeslat zprávu členovi</button>
+            <button class="btn-alt" style="margin-top:5px;" onclick="closeAdminChatActive()">Zavřít tento chat</button>
         </div>
 
         <div class="sub-block">
@@ -230,7 +267,6 @@
             </div>
             <button onclick="updateOfficePassword()">Uložit / Změnit heslo úřadu</button>
             
-            <!-- FORMULÁŘ PŘIDÁNÍ INFORMACE S TLAČÍTKEM + -->
             <h4 style="margin-top:20px; margin-bottom:10px; color:#fff; border-top: 1px solid var(--border); padding-top: 10px;">Přidat utajenou informaci</h4>
             <div id="creatorFormBlock" style="display:none; background:#121214; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
                 <div class="form-group">
@@ -246,13 +282,8 @@
             <button id="btnOpenCreator" style="background:#374151;" onclick="toggleCreatorForm()">➕ Vytvořit novou informaci</button>
         </div>
 
-        <h3>Globální chat se členy</h3>
-        <div class="chat-box" id="adminChatBox"></div>
-        <div class="form-group">
-            <input type="text" id="adminMessageInput" placeholder="Napiš odpověď členům...">
-        </div>
-        <button onclick="sendAdminMessage()">Odeslat zprávu jako Vedení</button>
-        <button class="btn-success" style="margin-top: 10px;" onclick="openSecretOfficeGate()">🏛️ Otevřít Úřad ÚUI</button>
+        <!-- TLAČÍTKO ÚUI - ZOBRAZENO AŽ PO PŘIHLÁŠENÍ VEDENÍ -->
+        <button class="btn-success" style="margin-top: 10px; font-size: 17px;" onclick="openSecretOfficeGate()">🏛️ Otevřít Úřad ÚUI</button>
         <button class="btn-alt" onclick="logout()">Odhlásit se</button>
     </div>
 
@@ -261,7 +292,6 @@
         <h2>🏛️ Úřad Utajených Informací (ÚUI)</h2>
         <p style="color: var(--text-muted); font-size: 14px;">Zabezpečený přehled dokumentů Organizace Samosprávného Sdružení.</p>
         
-        <!-- VYHLEDÁVACÍ ŘÁDEK PODLE NÁZVU -->
         <div class="form-group" style="margin-bottom: 20px;">
             <label for="searchInfoInput">🔍 Vyhledat informaci podle názvu</label>
             <input type="text" id="searchInfoInput" placeholder="Napiš název hledané informace..." oninput="filterSecretInfo()">
@@ -297,6 +327,12 @@
   let isRegisterMode = false;
   let previousSectionId = "authSection";
   let allSecretInfos = []; 
+  
+  // Řízení chatu pro Vedení
+  let activeChatTargetId = null;
+  let activeChatTargetName = "";
+  let unsubscribeAdminChat = null;
+  let unsubscribeUserChat = null;
 
   function toggleAdminField() {
       const block = document.getElementById("adminLoginBlock");
@@ -382,6 +418,9 @@
       if (confirm(`Opravdu chcete kompletně smazat účet člena: ${userName}?`)) {
           db.collection("users").doc(userId).delete().then(() => {
               alert(`Účet člena ${userName} byl smazán.`);
+              if (activeChatTargetId === userId) {
+                  closeAdminChatActive();
+              }
           });
       }
   }
@@ -395,7 +434,6 @@
       });
   }
 
-  // PŘIDÁNÍ INFORMACE
   function publishSecretInfo() {
       const title = document.getElementById("infoTitleInput").value.trim();
       const desc = document.getElementById("infoDescInput").value.trim();
@@ -404,7 +442,7 @@
       db.collection("secret_office").add({
           title: title,
           description: desc,
-          isLocked: false, // Standardně odemčeno pro úřad
+          isLocked: false, 
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
           alert("Hotovo! Informace byla uložena.");
@@ -414,7 +452,6 @@
       });
   }
 
-  // OTEVŘENÍ ÚŘADU ÚUI S HESLEM
   function openSecretOfficeGate() {
       db.collection("system_config").doc("office_access").get().then((doc) => {
           let systemPass = "0000"; 
@@ -440,7 +477,6 @@
       document.getElementById("officeSection").style.display = "block";
       document.getElementById("searchInfoInput").value = "";
 
-      // Posluchač na informace
       db.collection("secret_office").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
           allSecretInfos = [];
           snapshot.forEach(doc => {
@@ -455,15 +491,10 @@
   function renderSecretInfoList(listData) {
       const container = document.getElementById("secretInfoContainer");
       container.innerHTML = "";
-      
       let visibleCount = 0;
 
       listData.forEach(info => {
-          // Pokud je informace zamčená a prohlížející NENÍ admin, úplně ji přeskočíme
-          if (info.isLocked && !isAdmin) {
-              return; 
-          }
-          
+          if (info.isLocked && !isAdmin) return; 
           visibleCount++;
           
           let cardClass = info.isLocked ? "info-card locked-card" : "info-card";
@@ -497,7 +528,6 @@
       }
   }
 
-  // VYHLEDÁVÁNÍ PODLE NÁZVU
   function filterSecretInfo() {
       const searchVal = document.getElementById("searchInfoInput").value.toLowerCase().trim();
       if (!searchVal) {
@@ -508,16 +538,12 @@
       renderSecretInfoList(filtered);
   }
 
-  // ADMIN: ZAMKNOUT / ODAMKNOUT INFORMACI
   function toggleLockInfo(docId, currentStatus) {
-      db.collection("secret_office").doc(docId).update({
-          isLocked: !currentStatus
-      }).then(() => {
+      db.collection("secret_office").doc(docId).update({ isLocked: !currentStatus }).then(() => {
           alert(currentStatus ? "Informace byla odemčena pro členy." : "Informace byla uzamčena a je viditelná POUZE pro Vedení.");
       });
   }
 
-  // ADMIN: VYMAZAT INFORMACI
   function deleteSecretInfo(docId) {
       if (confirm("Opravdu chcete tuto informaci kompletně smazat z Úřadu?")) {
           db.collection("secret_office").doc(docId).delete().then(() => {
@@ -526,13 +552,10 @@
       }
   }
 
-  // ADMIN: UPRAVIT INFORMACI
   function editInfoDescription(docId, oldText) {
       const newText = prompt("Upravte text informace:", oldText);
       if (newText !== null && newText.trim() !== "") {
-          db.collection("secret_office").doc(docId).update({
-              description: newText.trim()
-          }).then(() => {
+          db.collection("secret_office").doc(docId).update({ description: newText.trim() }).then(() => {
               alert("Informace byla úspěšně aktualizována.");
           });
       }
@@ -543,41 +566,110 @@
       document.getElementById("" + previousSectionId).style.display = "block";
   }
 
+  // MAZÁNÍ ZPRÁV V CHATU (PRO VEDENÍ)
+  function deleteChatMessage(msgId) {
+      if(confirm("Opravdu chcete tuto zprávu trvale smazat?")) {
+          db.collection("messages").doc(msgId).delete().then(() => {
+              alert("Zpráva byla smazána.");
+          });
+      }
+  }
+
+  // ODESÍLÁNÍ ZPRÁVY - ČLEN (DO SVÉHO SOUKROMÉHO KANÁLU)
   function sendUserMessage() {
       const text = document.getElementById("userMessageInput").value.trim();
       if (!text) return;
+      const myId = cleanId(currentUser.name);
       db.collection("messages").add({
-          sender: currentUser.name, senderId: cleanId(currentUser.name), text: text,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(), isAdminSender: false
+          sender: currentUser.name,
+          chatRoomId: myId, // Navázáno na jedinečné ID člena
+          text: text,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          isAdminSender: false
       }).then(() => { document.getElementById("userMessageInput").value = ""; });
   }
 
+  // ODESÍLÁNÍ ZPRÁVY - VEDENÍ (DO AKTIVNÍHO SOUKROMÉHO KANÁLU)
   function sendAdminMessage() {
       const text = document.getElementById("adminMessageInput").value.trim();
-      if (!text) return;
+      if (!text || !activeChatTargetId) return;
       db.collection("messages").add({
-          sender: "Vedení", senderId: "admin_root", text: text,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(), isAdminSender: true
+          sender: "Vedení",
+          chatRoomId: activeChatTargetId, // Posílá se do kanálu zvoleného člena
+          text: text,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          isAdminSender: true
       }).then(() => { document.getElementById("adminMessageInput").value = ""; });
   }
 
+  // SPOUŠTĚNÍ NÁHLEDU SOUKROMÉHO CHATU PRO ČLENA
   function showUserSection() {
       document.getElementById("authSection").style.display = "none";
       document.getElementById("userSection").style.display = "block";
       document.getElementById("userWelcome").innerText = "Aktivní člen: " + currentUser.name;
 
-      db.collection("messages").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
-          const box = document.getElementById("userChatBox");
-          box.innerHTML = "";
-          snapshot.forEach((doc) => {
-              const m = doc.data();
-              const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
-              box.innerHTML += `<div class="msg ${typeClass}"><strong>${m.sender}:</strong> ${m.text}</div>`;
-          });
-          box.scrollTop = box.scrollHeight;
-      });
+      const myId = cleanId(currentUser.name);
+
+      if(unsubscribeUserChat) unsubscribeUserChat();
+      // Filtruje zprávy patřící pouze tomuto členovi
+      unsubscribeUserChat = db.collection("messages")
+        .where("chatRoomId", "==", myId)
+        .orderBy("timestamp", "asc")
+        .onSnapshot((snapshot) => {
+            const box = document.getElementById("userChatBox");
+            box.innerHTML = "";
+            snapshot.forEach((doc) => {
+                const m = doc.data();
+                const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
+                box.innerHTML += `
+                    <div class="msg ${typeClass}">
+                        <span><strong>${m.sender}:</strong> ${m.text}</span>
+                    </div>`;
+            });
+            box.scrollTop = box.scrollHeight;
+        });
   }
 
+  // OTEVŘENÍ KONKRÉTNÍHO SOUKROMÉHO CHATU VEDENÍM
+  function openAdminChatWithUser(userId, userName) {
+      activeChatTargetId = userId;
+      activeChatTargetName = userName;
+      
+      document.getElementById("adminChatInterfaceBlock").style.display = "block";
+      document.getElementById("adminChatPartnerTitle").innerText = "Chat s členem: " + userName;
+      
+      if(unsubscribeAdminChat) unsubscribeAdminChat();
+      
+      unsubscribeAdminChat = db.collection("messages")
+        .where("chatRoomId", "==", userId)
+        .orderBy("timestamp", "asc")
+        .onSnapshot((snapshot) => {
+            const box = document.getElementById("adminChatBox");
+            box.innerHTML = "";
+            snapshot.forEach((doc) => {
+                const m = doc.data();
+                const mId = doc.id;
+                const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
+                
+                // Vedení zde má tlačítko pro smazání u jakékoliv zprávy
+                box.innerHTML += `
+                    <div class="msg ${typeClass}">
+                        <span><strong>${m.sender}:</strong> ${m.text}</span>
+                        <button class="msg-delete-btn" onclick="deleteChatMessage('${mId}')">❌</button>
+                    </div>`;
+            });
+            box.scrollTop = box.scrollHeight;
+        });
+  }
+
+  function closeAdminChatActive() {
+      if(unsubscribeAdminChat) unsubscribeAdminChat();
+      activeChatTargetId = null;
+      activeChatTargetName = "";
+      document.getElementById("adminChatInterfaceBlock").style.display = "none";
+  }
+
+  // ZOBRAZENÍ PANELU VEDENÍ
   function showAdminSection() {
       document.getElementById("authSection").style.display = "none";
       document.getElementById("adminSection").style.display = "block";
@@ -585,30 +677,24 @@
       db.collection("users").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
           const list = document.getElementById("adminUsersList");
           list.innerHTML = "";
-          if (snapshot.empty) { list.innerHTML = "<p style='color:var(--text-muted)'>Žádní členové v DB.</p>"; }
+          if (snapshot.empty) { list.innerHTML = "<p style='color:var(--text-muted)'>Žádní členové v databázi.</p>"; }
           snapshot.forEach((doc) => {
               const u = doc.data(); const uId = doc.id;
               list.innerHTML += `
                   <div class="user-item">
                       <div>👤 <strong>${u.name}</strong> (Heslo: ${u.password})</div>
-                      <button class="btn-danger" onclick="deleteUserAccount('${uId}', '${u.name}')">Odebrat</button>
+                      <div class="user-item-actions">
+                          <button style="background:var(--primary);" onclick="openAdminChatWithUser('${uId}', '${u.name}')">💬 Otevřít chat</button>
+                          <button class="btn-danger" onclick="deleteUserAccount('${uId}', '${u.name}')">Odebrat</button>
+                      </div>
                   </div>`;
           });
-      });
-
-      db.collection("messages").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
-          const box = document.getElementById("adminChatBox");
-          box.innerHTML = "";
-          snapshot.forEach((doc) => {
-              const m = doc.data();
-              const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
-              box.innerHTML += `<div class="msg ${typeClass}"><strong>${m.sender}:</strong> ${m.text}</div>`;
-          });
-          box.scrollTop = box.scrollHeight;
       });
   }
 
   function logout() {
+      if(unsubscribeUserChat) unsubscribeUserChat();
+      closeAdminChatActive();
       currentUser = null; isAdmin = false;
       document.getElementById("userSection").style.display = "none";
       document.getElementById("adminSection").style.display = "none";
