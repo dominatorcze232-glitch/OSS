@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klubový Systém & Vedení</title>
+    
+    <!-- Firebase Knihovny v9 (Compat režim pro snadný běh na GitHubu) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1a1a1e;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border: #2d2d34;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        h2, h3 { margin-top: 0; color: #fff; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 14px; }
+        input {
+            width: 100%;
+            padding: 10px;
+            background: #252529;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+            margin-top: 5px;
+        }
+        button:hover { background: var(--primary-hover); }
+        .btn-alt { background: transparent; border: 1px solid var(--border); color: var(--text-muted); margin-top: 10px;}
+        .btn-alt:hover { background: #252529; color: #fff; }
+        
+        .chat-box {
+            background: #121214;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .msg {
+            background: #252529;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .msg.admin-msg { border-left: 3px solid #e11d48; background: #2e1619; }
+        .msg.user-msg { border-left: 3px solid #10b981; }
+        
+        .user-item {
+            padding: 10px;
+            background: #252529;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+        }
+
+        /* Skryté tlačítko "A" pro admina v rohu */
+        .admin-a-trigger {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 14px;
+            color: #252529; /* Téměř neviditelné na tmavém pozadí */
+            cursor: pointer;
+            user-select: none;
+            font-weight: bold;
+        }
+        .admin-a-trigger:hover {
+            color: var(--text-muted); /* Rozsvítí se jen při najetí myší */
+        }
+        #adminLoginBlock {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 1. SEKCE: AUTENTIKACE (PŘIHLÁŠENÍ / REGISTRACE) -->
+    <div id="authSection">
+        <h2 id="authTitle">Přihlášení člena</h2>
+        <div class="form-group">
+            <label for="authName">Uživatelské jméno</label>
+            <input type="text" id="authName" placeholder="Zadej jméno">
+        </div>
+        <div class="form-group">
+            <label for="authPassword">Heslo (pouze čísla)</label>
+            <input type="number" id="authPassword" placeholder="Zadej číselné heslo">
+        </div>
+        <button id="btnPrimary" onclick="handlePrimaryAction()">Přihlásit se</button>
+        <button class="btn-alt" id="btnToggle" onclick="toggleAuthMode()">Nemáš účet? Registruj se</button>
+        
+        <!-- Skrytý formulář pro admin kód, který se ukáže až po kliknutí na "A" -->
+        <div id="adminLoginBlock" style="display: none;">
+            <div class="form-group">
+                <label for="adminCodeInput">Tajný kód vedení</label>
+                <input type="password" id="adminCodeInput" placeholder="Zadej kód">
+            </div>
+            <button style="background: #b91c1c;" onclick="submitAdminCode()">Vstoupit jako Vedení</button>
+        </div>
+
+        <!-- TAJNÉ TLAČÍTKO "A" -->
+        <div class="admin-a-trigger" onclick="toggleAdminField()">A</div>
+    </div>
+
+    <!-- 2. SEKCE: DASHBOARD ČLENA (CHAT S VEDENÍM) -->
+    <div id="userSection" style="display: none;">
+        <h2 id="userWelcome">Aplikace Člena</h2>
+        <p style="color: var(--text-muted); font-size: 14px;">Zde můžeš napsat zprávu přímo vedení klubu.</p>
+        
+        <div class="chat-box" id="userChatBox"></div>
+        
+        <div class="form-group">
+            <input type="text" id="userMessageInput" placeholder="Napiš zprávu vedení...">
+        </div>
+        <button onclick="sendUserMessage()">Odeslat zprávu</button>
+        <button class="btn-alt" onclick="logout()">Odhlásit se</button>
+    </div>
+
+    <!-- 3. SEKCE: DASHBOARD ADMINA (VEDENÍ) -->
+    <div id="adminSection" style="display: none;">
+        <h2>Panel Vedení (Admin)</h2>
+        
+        <div id="adminUsersList" style="margin-bottom: 20px; max-height: 150px; overflow-y: auto;">
+            <p style="color: var(--text-muted);">Načítám registrované účty...</p>
+        </div>
+
+        <h3>Globální komunikace</h3>
+        <div class="chat-box" id="adminChatBox"></div>
+        
+        <div class="form-group">
+            <input type="text" id="adminMessageInput" placeholder="Napiš odpověď členům...">
+        </div>
+        <button onclick="sendAdminMessage()">Odeslat zprávu jako Vedení</button>
+        <button class="btn-alt" onclick="logout()">Odhlásit se</button>
+    </div>
+</div>
+
+<script>
+  // ==========================================
+  // CONFIG: KONFIGURACE PRO TVŮJ PROJEKT oss-1eb9c
+  // ==========================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyAdWfq820KmqBSFxMODpxL1ijCYpf0rlog",
+    authDomain: "oss-1eb9c.firebaseapp.com",
+    databaseURL: "https://oss-1eb9c-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "oss-1eb9c",
+    storageBucket: "oss-1eb9c.firebasestorage.app",
+    messagingSenderId: "845793197540",
+    appId: "1:845793197540:web:0b875f7f8a4b46b3aedbf1"
+  };
+
+  // Inicializace databáze
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let currentUser = null;
+  let isAdmin = false;
+  let isRegisterMode = false;
+
+  // Funkce pro skryté tlačítko "A" – bezpečné zobrazení vstupu
+  function toggleAdminField() {
+      const block = document.getElementById("adminLoginBlock");
+      block.style.display = block.style.display === "none" ? "block" : "none";
+  }
+
+  function submitAdminCode() {
+      const code = document.getElementById("adminCodeInput").value.trim();
+      if (code === "6852") {
+          isAdmin = true;
+          currentUser = { name: "Vedení" };
+          alert("Vítejte zpět, pane správče.");
+          document.getElementById("adminCodeInput").value = "";
+          document.getElementById("adminLoginBlock").style.display = "none";
+          showAdminSection();
+      } else {
+          alert("Neplatný admin kód!");
+      }
+  }
+
+  function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      const title = document.getElementById("authTitle");
+      const btnPrimary = document.getElementById("btnPrimary");
+      const btnToggle = document.getElementById("btnToggle");
+      
+      if (isRegisterMode) {
+          title.innerText = "Registrace člena";
+          btnPrimary.innerText = "Vytvořit účet";
+          btnToggle.innerText = "Už máš účet? Přihlas se";
+      } else {
+          title.innerText = "Přihlášení člena";
+          btnPrimary.innerText = "Přihlásit se";
+          btnToggle.innerText = "Nemáš účet? Registruj se";
+      }
+  }
+
+  function handlePrimaryAction() {
+      const name = document.getElementById("authName").value.trim();
+      const password = document.getElementById("authPassword").value.trim();
+      
+      if(isRegisterMode) {
+          registerUser(name, password);
+      } else {
+          loginUser(name, password);
+      }
+  }
+
+  function cleanId(text) {
+      return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '');
+  }
+
+  function registerUser(name, password) {
+      if (!name || !password) return alert("Vyplň jméno a heslo!");
+      const userId = cleanId(name);
+
+      db.collection("users").doc(userId).get().then((doc) => {
+          if (doc.exists) {
+              alert("Tento uživatel už v databázi existuje!");
+          } else {
+              db.collection("users").doc(userId).set({
+                  name: name,
+                  password: password.toString(),
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              }).then(() => {
+                  alert("Účet byl úspěšně vytvořen! Nyní se přihlas.");
+                  toggleAuthMode();
+              }).catch((err) => alert("Chyba při zápisu do Firebase: " + err.message));
+          }
+      });
+  }
+
+  function loginUser(name, password) {
+      if (!name || !password) return alert("Vyplň jméno a heslo!");
+      const userId = cleanId(name);
+
+      db.collection("users").doc(userId).get().then((doc) => {
+          if (doc.exists && doc.data().password === password.toString()) {
+              currentUser = doc.data();
+              isAdmin = false;
+              alert("Přihlášení úspěšné. Vítej, " + currentUser.name);
+              showUserSection();
+          } else {
+              alert("Nesprávné jméno nebo heslo!");
+          }
+      }).catch((err) => alert("Chyba přihlášení: " + err.message));
+  }
+
+  function sendUserMessage() {
+      const text = document.getElementById("userMessageInput").value.trim();
+      if (!text) return;
+
+      db.collection("messages").add({
+          sender: currentUser.name,
+          senderId: cleanId(currentUser.name),
+          text: text,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          isAdminSender: false
+      }).then(() => {
+          document.getElementById("userMessageInput").value = "";
+      });
+  }
+
+  function sendAdminMessage() {
+      const text = document.getElementById("adminMessageInput").value.trim();
+      if (!text) return;
+
+      db.collection("messages").add({
+          sender: "Vedení klubu",
+          senderId: "admin_root",
+          text: text,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          isAdminSender: true
+      }).then(() => {
+          document.getElementById("adminMessageInput").value = "";
+      });
+  }
+
+  function showUserSection() {
+      document.getElementById("authSection").style.display = "none";
+      document.getElementById("userSection").style.display = "block";
+      document.getElementById("userWelcome").innerText = "Aktivní člen: " + currentUser.name;
+
+      db.collection("messages").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
+          const box = document.getElementById("userChatBox");
+          box.innerHTML = "";
+          snapshot.forEach((doc) => {
+              const m = doc.data();
+              const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
+              box.innerHTML += `<div class="msg ${typeClass}"><strong>${m.sender}:</strong> ${m.text}</div>`;
+          });
+          box.scrollTop = box.scrollHeight;
+      });
+  }
+
+  function showAdminSection() {
+      document.getElementById("authSection").style.display = "none";
+      document.getElementById("adminSection").style.display = "block";
+
+      db.collection("users").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+          const list = document.getElementById("adminUsersList");
+          list.innerHTML = "<h3>Registrovaní členové v DB:</h3>";
+          if (snapshot.empty) {
+              list.innerHTML += "<p style='color:var(--text-muted)'>Žádné účty v databázi.</p>";
+          }
+          snapshot.forEach((doc) => {
+              const u = doc.data();
+              list.innerHTML += `<div class="user-item">👤 <strong>${u.name}</strong> (Heslo: ${u.password})</div>`;
+          });
+      });
+
+      db.collection("messages").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
+          const box = document.getElementById("adminChatBox");
+          box.innerHTML = "";
+          snapshot.forEach((doc) => {
+              const m = doc.data();
+              const typeClass = m.isAdminSender ? "admin-msg" : "user-msg";
+              box.innerHTML += `<div class="msg ${typeClass}"><strong>${m.sender}:</strong> ${m.text}</div>`;
+          });
+          box.scrollTop = box.scrollHeight;
+      });
+  }
+
+  function logout() {
+      currentUser = null;
+      isAdmin = false;
+      document.getElementById("userSection").style.display = "none";
+      document.getElementById("adminSection").style.display = "none";
+      document.getElementById("authSection").style.display = "block";
+      document.getElementById("authName").value = "";
+      document.getElementById("authPassword").value = "";
+  }
+</script>
+
+</body>
+</html>
